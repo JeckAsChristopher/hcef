@@ -1,0 +1,1 @@
+cmd_Release/obj.target/hcrypt.node := aarch64-linux-android-clang++ -o Release/obj.target/hcrypt.node -shared -rdynamic -fPIC  -Wl,-soname=hcrypt.node -Wl,--start-group Release/obj.target/hcrypt/libs/blow_cipher.o Release/obj.target/hcrypt/libs/node_hcrypt.o -Wl,--end-group -lssl -lcrypto -llog
