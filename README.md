@@ -107,7 +107,7 @@ Pull requests and suggestions are welcome. Please open issues to report bugs or 
 | Version | Status       | Description                                      |
 |---------|--------------|--------------------------------------------------|
 | 2.2.6   | Stable       | Stable and secure, but many dependencies. Try using the latest. |
-| 2.3.1   | Latest       | Latest release with added security layers.       |
+| 2.3.7   | Latest       | Latest release with added security layers.       |
 
 
 ---
@@ -116,3 +116,5 @@ Pull requests and suggestions are welcome. Please open issues to report bugs or 
 
 Developed and maintained by [Jeck](https://github.com/JeckAsChristopher)
 
+## File Renaming[Fixed]
+Main Problem: .gitignore ignoring `.a` files.

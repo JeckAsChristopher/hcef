@@ -1,18 +1,25 @@
 {
   "name": "hcef",
-  "version": "2.3.1",
+  "version": "2.3.7",
   "description": "File Encryption For Production Use. Test and well maintained.",
   "main": "build/Release/hcrypt.node",
   "directories": {
     "test": "test"
   },
+  "files": [
+    "build/",
+    "libs/",
+    "deps/",
+    "Prebuild/",
+    "test/",
+    "binding.gyp"
+  ],
   "dependencies": {
     "node-addon-api": "^8.3.1",
     "node-gyp": "^11.2.0"
   },
-  "devDependencies": {},
   "scripts": {
-    "test": "test/encrypt.js",
+    "test": "node test/encrypt.js",
     "install": "node-gyp rebuild"
   },
   "repository": {
