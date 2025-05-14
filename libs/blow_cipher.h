@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+// --- Constants ---
 #define KEY_LEN 32
 #define IV_LEN 16
 #define SALT_LEN 16

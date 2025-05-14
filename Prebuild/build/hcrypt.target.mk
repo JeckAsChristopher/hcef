@@ -35,7 +35,8 @@ CFLAGS_CC_Debug := \
 	-fno-rtti \
 	-fno-strict-aliasing \
 	-std=gnu++20 \
-	-std=c++17
+	-std=c++17 \
+	-fPIC
 
 INCS_Debug := \
 	-I/data/data/com.termux/files/home/.cache/node-gyp/23.11.0/include/node \
@@ -46,7 +47,9 @@ INCS_Debug := \
 	-I/data/data/com.termux/files/home/.cache/node-gyp/23.11.0/deps/zlib \
 	-I/data/data/com.termux/files/home/.cache/node-gyp/23.11.0/deps/v8/include \
 	"-I$(srcdir)/\"/data/data/com.termux/files/home/hcrypt/node_modules/node-addon-api\"" \
-	-I$(srcdir)/node_modules/node-addon-api
+	-I$(srcdir)/node_modules/node-addon-api \
+	-I/data/data/com.termux/files/home/hcrypt/deps/argon2 \
+	-I/data/data/com.termux/files/home/hcrypt/deps/argon2/include
 
 DEFS_Release := \
 	'-DNODE_GYP_MODULE_NAME=hcrypt' \
@@ -80,7 +83,8 @@ CFLAGS_CC_Release := \
 	-fno-rtti \
 	-fno-strict-aliasing \
 	-std=gnu++20 \
-	-std=c++17
+	-std=c++17 \
+	-fPIC
 
 INCS_Release := \
 	-I/data/data/com.termux/files/home/.cache/node-gyp/23.11.0/include/node \
@@ -91,7 +95,9 @@ INCS_Release := \
 	-I/data/data/com.termux/files/home/.cache/node-gyp/23.11.0/deps/zlib \
 	-I/data/data/com.termux/files/home/.cache/node-gyp/23.11.0/deps/v8/include \
 	"-I$(srcdir)/\"/data/data/com.termux/files/home/hcrypt/node_modules/node-addon-api\"" \
-	-I$(srcdir)/node_modules/node-addon-api
+	-I$(srcdir)/node_modules/node-addon-api \
+	-I/data/data/com.termux/files/home/hcrypt/deps/argon2 \
+	-I/data/data/com.termux/files/home/hcrypt/deps/argon2/include
 
 OBJS := \
 	$(obj).target/$(TARGET)/libs/blow_cipher.o \
@@ -123,15 +129,20 @@ $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cc FORCE_DO_CMD
 ### Rules for final target.
 LDFLAGS_Debug := \
 	-rdynamic \
+	-L/data/data/com.termux/files/home/hcrypt/deps \
+	-fPIC \
 	-fPIC
 
 LDFLAGS_Release := \
 	-rdynamic \
+	-L/data/data/com.termux/files/home/hcrypt/deps \
+	-fPIC \
 	-fPIC
 
 LIBS := \
 	-lssl \
 	-lcrypto \
+	/data/data/com.termux/files/home/hcrypt/deps/argon2/libargon2.a \
 	-llog
 
 $(obj).target/hcrypt.node: GYP_LDFLAGS := $(LDFLAGS_$(BUILDTYPE))

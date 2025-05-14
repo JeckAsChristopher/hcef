@@ -15,9 +15,9 @@
 * HMAC-SHA256 integrity check
 * Obfuscation: Caesar cipher, XOR, and byte reversal
 * Uses salt and IV for each encryption
-* Secure key derivation (PBKDF2-HMAC-SHA256)
+* Secure key derivation (PBKDF2-HMAC-SHA256-ARGON2)
 * Automatic Base64 encoding for file structure
-* Native performance with clean memory handling
+* Native performance with clean memory handling 
 
 ---
 
@@ -38,7 +38,7 @@ npm install hcef
 ```js
 const hcef = require('hcef');
 
-const result = addon.encryptFile('example.txt', 'myStrongPassword123');
+const result = hcef.encrypt('example.txt', 'myStrongPassword123');
 console.log(result);
 ```
 
@@ -47,7 +47,7 @@ console.log(result);
 ```js
 const hcef = require('hcef');
 
-const result = addon.decryptFile('example.txt.enf', 'myStrongPassword123');
+const result = hcef.decrypt('example.txt.enf', 'myStrongPassword123');
 console.log(result);
 ```
 
@@ -73,6 +73,7 @@ MAGIC_HEADER:salt:iv:mac:ciphertext
 * Keys are derived using 100,000 PBKDF2 iterations (HMAC-SHA256)
 * HMAC prevents tampering and verifies integrity before decryption
 * Memory is securely wiped using `OPENSSL_cleanse`
+* Uses Both **PBKDF2** and **ARGON2** To Slow Down Brute Force Attacking [Latest Release]
 
 > While this project is production-hardened, always stay updated with the latest OpenSSL and test thoroughly in your environment.
 
@@ -97,6 +98,17 @@ MIT
 ## Contributing
 
 Pull requests and suggestions are welcome. Please open issues to report bugs or request features.
+
+---
+
+
+## Changelog
+
+| Version | Status       | Description                                      |
+|---------|--------------|--------------------------------------------------|
+| 2.2.6   | Stable       | Stable and secure, but many dependencies. Try using the latest. |
+| 2.3.1   | Latest       | Latest release with added security layers.       |
+
 
 ---
 

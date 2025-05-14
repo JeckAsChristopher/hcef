@@ -1,6 +1,6 @@
 const hcrypt = require('../build/Release/hcrypt');
 
-const encryptedFilePath = 'text.txt.enf';
+const encryptedFilePath = 'text.txt.data.enf';
 const password = 'Key';
 
 try {

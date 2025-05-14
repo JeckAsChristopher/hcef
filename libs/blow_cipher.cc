@@ -12,6 +12,8 @@
 #include <openssl/crypto.h>
 #include <sys/stat.h>
 #include <stdexcept>
+#include "argon2.h"
+#include <sys/mman.h>
 
 #define KEY_LEN 32
 #define IV_LEN 16
@@ -62,11 +64,42 @@ std::vector<unsigned char> base64Decode(const std::string& encoded) {
 
 // --- Key Derivation and MAC ---
 std::vector<unsigned char> deriveKey(const std::string& password, const std::vector<unsigned char>& salt) {
-    std::vector<unsigned char> key(KEY_LEN);
-    if (!PKCS5_PBKDF2_HMAC(password.c_str(), password.length(), salt.data(), salt.size(), 100000, EVP_sha256(), KEY_LEN, key.data())) {
-        throw std::runtime_error("Error deriving key using PBKDF2_HMAC.");
+    std::vector<unsigned char> intermediate(KEY_LEN);
+    if (mlock(intermediate.data(), intermediate.size()) != 0) {
+        throw std::runtime_error("[!] Failed to lock intermediate memory.");
     }
-    return key;
+
+    if (!PKCS5_PBKDF2_HMAC(password.c_str(), password.length(), salt.data(), salt.size(),
+                           100000, EVP_sha256(), KEY_LEN, intermediate.data())) {
+        munlock(intermediate.data(), intermediate.size());
+        throw std::runtime_error("Error deriving intermediate key using PBKDF2_HMAC.");
+    }
+
+    std::vector<unsigned char> finalKey(KEY_LEN);
+    if (mlock(finalKey.data(), finalKey.size()) != 0) {
+        munlock(intermediate.data(), intermediate.size());
+        throw std::runtime_error("[!] Failed to lock finalKey memory.");
+    }
+
+    int result = argon2id_hash_raw(
+        2,              // iterations
+        1 << 17,        // 128 MB memory
+        4,              // parallelism (stronger for multi-core CPUs)
+        intermediate.data(), intermediate.size(),
+        salt.data(), salt.size(),
+        finalKey.data(), finalKey.size()
+    );
+
+    OPENSSL_cleanse(intermediate.data(), intermediate.size());
+    munlock(intermediate.data(), intermediate.size());
+    intermediate.clear();
+
+    if (result != ARGON2_OK) {
+        munlock(finalKey.data(), finalKey.size());
+        throw std::runtime_error("Error in Argon2id hashing: " + std::string(argon2_error_message(result)));
+    }
+
+    return finalKey;
 }
 
 std::vector<unsigned char> computeHMAC(const std::vector<unsigned char>& data, const std::vector<unsigned char>& key) {
@@ -158,7 +191,7 @@ std::string encryptFile(const std::string& filename, const std::string& password
         << base64Encode(mac) << ":"
         << base64Encode(ciphertext);
 
-    std::string outputFile = filename + ".enf";
+    std::string outputFile = filename + ".data.enf";
     if (fileExists(outputFile)) {
         return "[!] Output file exists. Aborting.";
     }
@@ -236,7 +269,7 @@ std::string decryptFile(const std::string& filename, const std::string& password
     xorObfuscate(plaintext, key[0]);
     reverseCaesar(plaintext, 5);
 
-    std::string outputFile = filename + ".dnf";
+    std::string outputFile = filename + ".data.dnf";
     if (fileExists(outputFile)) {
         return "[!] Output file exists. Aborting.";
     }

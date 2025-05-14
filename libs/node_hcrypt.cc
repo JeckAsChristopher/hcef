@@ -2,36 +2,49 @@
 
 #include <napi.h>
 #include <string>
-#include "blow_cipher.h"
+#include "blow_cipher.h"  // Header must declare encryptFile and decryptFile
+#include <stdexcept>
 
-// Forward declarations of your core functions
-std::string encryptFile(const std::string& filename, const std::string& password);
-std::string decryptFile(const std::string& filename, const std::string& password);
-
-// N-API Wrapper for encryption
+// N-API wrapper for encryption
 Napi::String EncryptFile(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    if (info.Length() < 2) {
-        Napi::TypeError::New(env, "Expected 2 arguments: filename and password").ThrowAsJavaScriptException();
+
+    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString()) {
+        Napi::TypeError::New(env, "Expected 2 string arguments: filename and password").ThrowAsJavaScriptException();
         return Napi::String::New(env, "");
     }
+
     std::string filename = info[0].As<Napi::String>().Utf8Value();
     std::string password = info[1].As<Napi::String>().Utf8Value();
-    std::string result = encryptFile(filename, password);
-    return Napi::String::New(env, result);
+
+    try {
+        std::string result = encryptFile(filename, password);
+        return Napi::String::New(env, result);
+    } catch (const std::exception& ex) {
+        Napi::Error::New(env, std::string("[EncryptFile Error] ") + ex.what()).ThrowAsJavaScriptException();
+        return Napi::String::New(env, "");
+    }
 }
 
-// N-API Wrapper for decryption
+// N-API wrapper for decryption
 Napi::String DecryptFile(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    if (info.Length() < 2) {
-        Napi::TypeError::New(env, "Expected 2 arguments: filename and password").ThrowAsJavaScriptException();
+
+    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString()) {
+        Napi::TypeError::New(env, "Expected 2 string arguments: filename and password").ThrowAsJavaScriptException();
         return Napi::String::New(env, "");
     }
+
     std::string filename = info[0].As<Napi::String>().Utf8Value();
     std::string password = info[1].As<Napi::String>().Utf8Value();
-    std::string result = decryptFile(filename, password);
-    return Napi::String::New(env, result);
+
+    try {
+        std::string result = decryptFile(filename, password);
+        return Napi::String::New(env, result);
+    } catch (const std::exception& ex) {
+        Napi::Error::New(env, std::string("[DecryptFile Error] ") + ex.what()).ThrowAsJavaScriptException();
+        return Napi::String::New(env, "");
+    }
 }
 
 // Initialize the module
