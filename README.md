@@ -18,6 +18,7 @@
 * Secure key derivation (PBKDF2-HMAC-SHA256-ARGON2)
 * Automatic Base64 encoding for file structure
 * Native performance with clean memory handling 
+* Zlib package for compression 
 
 ---
 
@@ -74,6 +75,7 @@ MAGIC_HEADER:salt:iv:mac:ciphertext
 * HMAC prevents tampering and verifies integrity before decryption
 * Memory is securely wiped using `OPENSSL_cleanse`
 * Uses Both **PBKDF2** and **ARGON2** To Slow Down Brute Force Attacking [Latest Release]
+* **zlib compression.**
 
 > While this project is production-hardened, always stay updated with the latest OpenSSL and test thoroughly in your environment.
 
@@ -107,14 +109,11 @@ Pull requests and suggestions are welcome. Please open issues to report bugs or 
 | Version | Status       | Description                                      |
 |---------|--------------|--------------------------------------------------|
 | 2.2.6   | Stable       | Stable and secure, but many dependencies. Try using the latest. |
-| 2.3.7   | Latest       | Latest release with added security layers.       |
-
+| 2.3.7   | Stable       | Stable release with added security layers.       |
+| 2.4.2   | Latest       | Latest Release Added zlib for compression 	|
 
 ---
 
 ## Author
 
 Developed and maintained by [Jeck](https://github.com/JeckAsChristopher)
-
-## File Renaming[Fixed]
-Main Problem: .gitignore ignoring `.a` files.

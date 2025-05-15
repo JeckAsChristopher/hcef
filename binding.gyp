@@ -10,7 +10,8 @@
         "<!(node -p \"require('node-addon-api').include\")",
         "<!(node -p \"require('node-addon-api').include_dir\")",
         "<(module_root_dir)/deps/argon2",
-        "<(module_root_dir)/deps/argon2/include"
+        "<(module_root_dir)/deps/argon2/include",
+	"<(module_root_dir)/deps/zlib/include"
       ],
       "defines": [
         "NAPI_DISABLE_CPP_EXCEPTIONS"
@@ -25,7 +26,8 @@
       "libraries": [
         "-lssl",
         "-lcrypto",
-        "<(module_root_dir)/deps/argon2/libargon2.a"
+        "<(module_root_dir)/deps/argon2/libargon2.a",
+	"<(module_root_dir)/deps/zlib/build_local/lib/libz.a"
       ],
       "ldflags": [
         "-L<(module_root_dir)/deps"

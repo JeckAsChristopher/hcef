@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <zlib.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/hmac.h>
@@ -21,7 +22,6 @@
 #define MAC_LEN 32
 #define MAGIC_HEADER "HCRYPT_SECURE"
 
-// --- Utility Functions ---
 bool fileExists(const std::string& path) {
     struct stat buffer;
     return stat(path.c_str(), &buffer) == 0;
@@ -62,7 +62,6 @@ std::vector<unsigned char> base64Decode(const std::string& encoded) {
     return buffer;
 }
 
-// --- Key Derivation and MAC ---
 std::vector<unsigned char> deriveKey(const std::string& password, const std::vector<unsigned char>& salt) {
     std::vector<unsigned char> intermediate(KEY_LEN);
     if (mlock(intermediate.data(), intermediate.size()) != 0) {
@@ -82,9 +81,7 @@ std::vector<unsigned char> deriveKey(const std::string& password, const std::vec
     }
 
     int result = argon2id_hash_raw(
-        2,              // iterations
-        1 << 17,        // 128 MB memory
-        4,              // parallelism (stronger for multi-core CPUs)
+        2, 1 << 17, 4,
         intermediate.data(), intermediate.size(),
         salt.data(), salt.size(),
         finalKey.data(), finalKey.size()
@@ -111,7 +108,6 @@ std::vector<unsigned char> computeHMAC(const std::vector<unsigned char>& data, c
     return hmac;
 }
 
-// --- Custom Obfuscation ---
 void applyCaesar(std::vector<unsigned char>& data, int shift) {
     for (auto& byte : data) byte = static_cast<unsigned char>(byte + shift);
 }
@@ -128,55 +124,82 @@ void reverseBytes(std::vector<unsigned char>& data) {
     std::reverse(data.begin(), data.end());
 }
 
-// --- Encryption ---
-std::string encryptFile(const std::string& filename, const std::string& password) {
-    if (filename.empty() || password.empty()) {
-        return "[!] Filename and password must not be empty.";
+std::vector<unsigned char> compressData(const std::vector<unsigned char>& input) {
+    uLong bound = compressBound(input.size());
+    std::vector<unsigned char> compressed(bound);
+    uLongf compressedSize = bound;
+
+    if (compress(compressed.data(), &compressedSize, input.data(), input.size()) != Z_OK) {
+        throw std::runtime_error("[!] Compression failed.");
     }
 
-    std::ifstream in(filename, std::ios::binary);
-    if (!in) {
-        return "[!] Cannot open input file.";
+    compressed.resize(compressedSize);
+    return compressed;
+}
+
+std::vector<unsigned char> decompressData(const std::vector<unsigned char>& input, size_t estimatedSize = 1024 * 1024 * 8) {
+    std::vector<unsigned char> output(estimatedSize);
+    uLongf decompressedSize = output.size();
+
+    int res = uncompress(output.data(), &decompressedSize, input.data(), input.size());
+    if (res == Z_BUF_ERROR) {
+        // Try larger buffer
+        output.resize(estimatedSize * 2);
+        decompressedSize = output.size();
+        res = uncompress(output.data(), &decompressedSize, input.data(), input.size());
     }
+
+    if (res != Z_OK) {
+        throw std::runtime_error("[!] Decompression failed.");
+    }
+
+    output.resize(decompressedSize);
+    return output;
+}
+
+std::string encryptFile(const std::string& filename, const std::string& password) {
+    if (filename.empty() || password.empty()) return "[!] Filename and password must not be empty.";
+
+    std::ifstream in(filename, std::ios::binary);
+    if (!in) return "[!] Cannot open input file.";
 
     std::vector<unsigned char> plaintext((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     in.close();
 
+    plaintext = compressData(plaintext);
+
     std::vector<unsigned char> salt(SALT_LEN);
     std::vector<unsigned char> iv(IV_LEN);
     if (!RAND_bytes(salt.data(), salt.size()) || !RAND_bytes(iv.data(), iv.size())) {
-        return "[!] Failed to generate random data (salt/iv).";
+        return "[!] Failed to generate random salt/iv.";
     }
 
     auto key = deriveKey(password, salt);
 
-    // Apply obfuscation steps
     applyCaesar(plaintext, 5);
     xorObfuscate(plaintext, key[0]);
     reverseBytes(plaintext);
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-    if (!ctx) {
-        return "[!] Error creating EVP context.";
-    }
+    if (!ctx) return "[!] EVP context creation failed.";
 
     std::vector<unsigned char> ciphertext(plaintext.size() + EVP_MAX_BLOCK_LENGTH);
     int len = 0, totalLen = 0;
 
     if (!EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key.data(), iv.data())) {
         EVP_CIPHER_CTX_free(ctx);
-        return "[!] Error initializing encryption.";
+        return "[!] Encryption init failed.";
     }
 
     if (!EVP_EncryptUpdate(ctx, ciphertext.data(), &len, plaintext.data(), plaintext.size())) {
         EVP_CIPHER_CTX_free(ctx);
-        return "[!] Error during encryption.";
+        return "[!] Encryption update failed.";
     }
     totalLen = len;
 
     if (!EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len)) {
         EVP_CIPHER_CTX_free(ctx);
-        return "[!] Final encryption step failed.";
+        return "[!] Encryption final step failed.";
     }
     totalLen += len;
     ciphertext.resize(totalLen);
@@ -192,9 +215,7 @@ std::string encryptFile(const std::string& filename, const std::string& password
         << base64Encode(ciphertext);
 
     std::string outputFile = filename + ".data.enf";
-    if (fileExists(outputFile)) {
-        return "[!] Output file exists. Aborting.";
-    }
+    if (fileExists(outputFile)) return "[!] Output file exists.";
 
     std::ofstream out(outputFile, std::ios::binary);
     out << oss.str();
@@ -203,23 +224,16 @@ std::string encryptFile(const std::string& filename, const std::string& password
     return "[+] File encrypted to: " + outputFile;
 }
 
-// --- Decryption ---
 std::string decryptFile(const std::string& filename, const std::string& password) {
-    if (filename.empty() || password.empty()) {
-        return "[!] Filename and password must not be empty.";
-    }
+    if (filename.empty() || password.empty()) return "[!] Filename and password must not be empty.";
 
     std::ifstream in(filename, std::ios::binary);
-    if (!in) {
-        return "[!] Cannot open file.";
-    }
+    if (!in) return "[!] Cannot open file.";
 
     std::string full((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     in.close();
 
-    if (full.find(MAGIC_HEADER) != 0) {
-        return "[!] Invalid header.";
-    }
+    if (full.find(MAGIC_HEADER) != 0) return "[!] Invalid header.";
 
     size_t p1 = full.find(':') + 1;
     size_t p2 = full.find(':', p1);
@@ -235,25 +249,23 @@ std::string decryptFile(const std::string& filename, const std::string& password
     auto computedMac = computeHMAC(ciphertext, key);
 
     if (CRYPTO_memcmp(mac.data(), computedMac.data(), MAC_LEN) != 0) {
-        return "[!] MAC verification failed. Data may be tampered.";
+        return "[!] MAC verification failed.";
     }
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-    if (!ctx) {
-        return "[!] Error creating EVP context.";
-    }
+    if (!ctx) return "[!] EVP context creation failed.";
 
     std::vector<unsigned char> plaintext(ciphertext.size());
     int len = 0, totalLen = 0;
 
     if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key.data(), iv.data())) {
         EVP_CIPHER_CTX_free(ctx);
-        return "[!] Error initializing decryption.";
+        return "[!] Decryption init failed.";
     }
 
     if (!EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext.data(), ciphertext.size())) {
         EVP_CIPHER_CTX_free(ctx);
-        return "[!] Error during decryption.";
+        return "[!] Decryption update failed.";
     }
     totalLen = len;
 
@@ -269,10 +281,18 @@ std::string decryptFile(const std::string& filename, const std::string& password
     xorObfuscate(plaintext, key[0]);
     reverseCaesar(plaintext, 5);
 
-    std::string outputFile = filename + ".data.dnf";
-    if (fileExists(outputFile)) {
-        return "[!] Output file exists. Aborting.";
+    try {
+        plaintext = decompressData(plaintext);
+    } catch (...) {
+        return "[!] Decompression failed.";
     }
+
+    std::string baseName = filename;
+if (baseName.size() >= 9 && baseName.substr(baseName.size() - 9) == ".data.enf") {
+    baseName = baseName.substr(0, baseName.size() - 9);
+}
+std::string outputFile = baseName + ".dnf";
+    if (fileExists(outputFile)) return "[!] Output file exists.";
 
     std::ofstream out(outputFile, std::ios::binary);
     out.write((char*)plaintext.data(), plaintext.size());
