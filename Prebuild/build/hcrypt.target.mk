@@ -49,7 +49,8 @@ INCS_Debug := \
 	"-I$(srcdir)/\"/data/data/com.termux/files/home/hcrypt/node_modules/node-addon-api\"" \
 	-I$(srcdir)/node_modules/node-addon-api \
 	-I/data/data/com.termux/files/home/hcrypt/deps/argon2 \
-	-I/data/data/com.termux/files/home/hcrypt/deps/argon2/include
+	-I/data/data/com.termux/files/home/hcrypt/deps/argon2/include \
+	-I/data/data/com.termux/files/home/hcrypt/deps/zlib/include
 
 DEFS_Release := \
 	'-DNODE_GYP_MODULE_NAME=hcrypt' \
@@ -97,7 +98,8 @@ INCS_Release := \
 	"-I$(srcdir)/\"/data/data/com.termux/files/home/hcrypt/node_modules/node-addon-api\"" \
 	-I$(srcdir)/node_modules/node-addon-api \
 	-I/data/data/com.termux/files/home/hcrypt/deps/argon2 \
-	-I/data/data/com.termux/files/home/hcrypt/deps/argon2/include
+	-I/data/data/com.termux/files/home/hcrypt/deps/argon2/include \
+	-I/data/data/com.termux/files/home/hcrypt/deps/zlib/include
 
 OBJS := \
 	$(obj).target/$(TARGET)/libs/blow_cipher.o \
@@ -143,6 +145,7 @@ LIBS := \
 	-lssl \
 	-lcrypto \
 	/data/data/com.termux/files/home/hcrypt/deps/argon2/libargon2.a \
+	/data/data/com.termux/files/home/hcrypt/deps/zlib/build_local/lib/libz.a \
 	-llog
 
 $(obj).target/hcrypt.node: GYP_LDFLAGS := $(LDFLAGS_$(BUILDTYPE))
