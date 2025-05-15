@@ -110,8 +110,8 @@ Pull requests and suggestions are welcome. Please open issues to report bugs or 
 |---------|--------------|--------------------------------------------------|
 | 2.2.6   | Stable       | Stable and secure, but many dependencies. Try using the latest. |
 | 2.3.7   | Stable       | Stable release with added security layers.       |
-| 2.4.3   | Latest       | Latest Release Added zlib for compression 	|
-
+| 2.4.3+   | Stable       | Stable Release Added zlib for compression 	|
+| 2.5.2   |  Latest      | Latest Release **Adds Smart error handling, and Key Encryption Smart Handling**	|
 ---
 
 ## Author

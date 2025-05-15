@@ -1,6 +1,6 @@
 {
   "name": "hcef",
-  "version": "2.4.3",
+  "version": "2.5.2",
   "description": "File Encryption For Production Use. Test and well maintained.",
   "main": "build/Release/hcrypt.node",
   "directories": {
@@ -24,7 +24,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JeckAsChristopher/hcrypt.git"
+    "url": "git+https://github.com/JeckAsChristopher/hcef.git"
   },
   "keywords": [
     "encrypt",
@@ -37,7 +37,7 @@
   "license": "MIT",
   "gypfile": true,
   "bugs": {
-    "url": "https://github.com/JeckAsChristopher/hcrypt/issues"
+    "url": "https://github.com/JeckAsChristopher/hcef/issues"
   },
-  "homepage": "https://github.com/JeckAsChristopher/hcrypt#readme"
+  "homepage": "https://github.com/JeckAsChristopher/hcef#readme"
 }
